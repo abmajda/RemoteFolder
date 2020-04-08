@@ -299,34 +299,34 @@ public class ClientGUI {
 		side.setPreferredSize(new Dimension(100, 300));
 		
 		// the top panel
-				JPanel top = new JPanel();
-				JLabel bottomLabel = new JLabel("Please enter filename");
-				JTextField fileEntry = new JTextField(15);
-				JButton uploadButton = new JButton("Upload");
-				uploadButton.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent e) {
-						try 
-						{
-							network.upload(fileEntry.getText());
-							String[] networkFileList = network.listFiles();
-							fileList.removeAllElements();
+		JPanel top = new JPanel();
+		JLabel bottomLabel = new JLabel("Please enter filename");
+		JTextField fileEntry = new JTextField(15);
+		JButton uploadButton = new JButton("Upload");
+		uploadButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try 
+				{
+					network.upload(fileEntry.getText());
+					String[] networkFileList = network.listFiles();
+					fileList.removeAllElements();
 							
-							// for each file name update
-							for (int i = 0; i < networkFileList.length; i++)
-							{
-								fileList.addElement(networkFileList[i]);
-							}
-						} 
-						catch (IOException error) 
-						{
-							errorDisplay.setText("Error, could not upload");
-						}
+					// for each file name update
+					for (int i = 0; i < networkFileList.length; i++)
+					{
+						fileList.addElement(networkFileList[i]);
 					}
-				});
+				} 
+				catch (IOException error) 
+				{
+					errorDisplay.setText("Error, could not upload");
+				}
+			}
+		});
 				
-				top.add(bottomLabel);
-				top.add(fileEntry);
-				top.add(uploadButton);
+		top.add(bottomLabel);
+		top.add(fileEntry);
+		top.add(uploadButton);
 		
 		// add to the frame and make visible
 		frame.add(BorderLayout.WEST, side);

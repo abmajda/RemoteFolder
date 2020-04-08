@@ -31,7 +31,6 @@ public class ClientConnection {
 		try
 		{
 			socket = new Socket(address, port);
-			System.out.println("connected");
 			in = new DataInputStream(socket.getInputStream());
 			out = new DataOutputStream(socket.getOutputStream());
 			try {
@@ -180,10 +179,16 @@ public class ClientConnection {
 			out.writeUTF("down");
 			out.writeUTF(filename);
 			
-			byte[] bytes = new byte[Integer.parseInt(in.readUTF())]; 
+			byte[] bytes = new byte[10000]; 
 			BufferedOutputStream outstream = new BufferedOutputStream(new FileOutputStream(filename));
-			int bytesread = instream.read(bytes, 0, bytes.length);
-			outstream.write(bytes, 0, bytesread);
+			int bytesread = 0;
+			do
+			{
+				bytesread = instream.read(bytes);
+				outstream.write(bytes, 0, bytesread);
+			}
+			while (bytesread == bytes.length);
+			outstream.flush();
 			outstream.close();
 		} 
 		catch (IOException error) 
@@ -200,16 +205,22 @@ public class ClientConnection {
 			out.writeUTF(filename);
 			
 			File resource = new File(filename);
-			out.writeUTF(String.valueOf(resource.length()));
-			byte[] bytes = new byte[(int) resource.length()];
+			//out.writeUTF(String.valueOf(resource.length()));
+			byte[] bytes = new byte[10];
+			int bytesread = 0;
 			BufferedInputStream instream = new BufferedInputStream(new FileInputStream(resource));
-			instream.read(bytes, 0, bytes.length);
-			outstream.write(bytes, 0, bytes.length);
-			outstream.flush();
+			do
+			{
+				bytesread = instream.read(bytes);
+				out.write(bytes, 0, bytesread);
+			}
+			while(bytesread == bytes.length);
+			out.flush();
 			instream.close();
 		} 
 		catch (IOException error) 
 		{
+			error.printStackTrace();
 			throw error;
 		}
 	}
