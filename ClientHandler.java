@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.Semaphore;
 
 public class ClientHandler extends Thread {
 	
@@ -25,18 +26,20 @@ public class ClientHandler extends Thread {
 	private ArrayList<String> subfolders = new ArrayList<String>();
 	private InputStream instream = null;
 	private OutputStream outstream = null;
+	private Semaphore sem;
 	
-	public ClientHandler(Socket socket, DataInputStream in, DataOutputStream out, int clientCount)
+	
+	public ClientHandler(Socket socket, DataInputStream in, DataOutputStream out, int clientCount, Semaphore sem)
 	{
 		this.socket = socket;
 		this.in = in;
 		this.out = out;
 		this.clientCount = clientCount;
+		this.sem = sem;
 		try {
 			instream = socket.getInputStream();
 			outstream = socket.getOutputStream();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -194,9 +197,9 @@ public class ClientHandler extends Thread {
 	
 	private void delete() throws IOException
 	{
-	
 		try 
 		{
+			sem.acquire();
 			String received = in.readUTF();
 			
 			if (received.charAt(0) == '*' && received.charAt(received.length() - 1) == '*')
@@ -225,10 +228,16 @@ public class ClientHandler extends Thread {
 			{
 				out.writeUTF("false");
 			}
+			
+			sem.release();
 		} 
-		catch (IOException error) 
+		catch (IOException e) 
 		{
-			throw error;
+			e.printStackTrace();
+		} 
+		catch (InterruptedException e) 
+		{
+			e.printStackTrace();
 		}
 	}
 	
@@ -268,9 +277,9 @@ public class ClientHandler extends Thread {
 				out.writeUTF("false"); 
 			}
 		} 
-		catch (IOException error) 
+		catch (IOException e) 
 		{
-			// deal with later
+			e.printStackTrace();
 		}
 	}
 	
@@ -291,9 +300,9 @@ public class ClientHandler extends Thread {
 			File directory = new File(fullPath);
 			directory.mkdir();
 		} 
-		catch (IOException error) 
+		catch (IOException e) 
 		{
-			// error handling goes here
+			e.printStackTrace();
 		}
 	}
 	
@@ -301,11 +310,14 @@ public class ClientHandler extends Thread {
 	{
 		try 
 		{
+			sem.acquire();
+			
 			String filename = path + subfolders() + "\\" + in.readUTF();
 			File resource = new File(filename);
-			byte[] bytes = new byte[10000];
+			byte[] bytes = new byte[1024];
 			int bytesread = 0;
 			BufferedInputStream instream = new BufferedInputStream(new FileInputStream(resource));
+			
 			do
 			{
 				bytesread = instream.read(bytes);
@@ -314,10 +326,16 @@ public class ClientHandler extends Thread {
 			while(bytesread == bytes.length);
 			outstream.flush();
 			instream.close();
+			
+			sem.release();
 		} 
-		catch (IOException error) 
+		catch (IOException e) 
 		{
-			// error handling
+			e.printStackTrace();
+		} 
+		catch (InterruptedException e) 
+		{
+			e.printStackTrace();
 		}
 	}
 	
@@ -325,9 +343,11 @@ public class ClientHandler extends Thread {
 	{
 		try 
 		{
+			sem.acquire();
+			
 			String clientFilename = in.readUTF();
 			String filename = path + subfolders() + clientFilename.substring(clientFilename.lastIndexOf("\\"), clientFilename.length());
-			byte[] bytes = new byte[10]; 
+			byte[] bytes = new byte[1024]; 
 			BufferedOutputStream outstream = new BufferedOutputStream(new FileOutputStream(filename));
 			int bytesread = 0;
 			do
@@ -338,11 +358,16 @@ public class ClientHandler extends Thread {
 			while (bytesread == bytes.length);
 			outstream.flush();
 			outstream.close();
+			
+			sem.release();
 		} 
-		catch (IOException error) 
+		catch (IOException e) 
 		{
-			// error handling
-			System.out.println("oops");
+			e.printStackTrace();
+		}
+		catch (InterruptedException e) 
+		{
+			e.printStackTrace();
 		}
 	}
 }

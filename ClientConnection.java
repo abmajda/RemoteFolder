@@ -3,10 +3,12 @@ package client;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,6 +24,7 @@ public class ClientConnection {
 	private InputStream instream = null;
 	private OutputStream outstream = null;
 	
+	// handle the initial log
 	public ClientConnection(String address, int port, String username, String password) throws Exception
 	{
 		// keeps track of authenticated or not
@@ -37,8 +40,7 @@ public class ClientConnection {
 				instream = socket.getInputStream();
 				outstream = socket.getOutputStream();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw e;
 			}
 			
 			// send the authentication
@@ -66,6 +68,7 @@ public class ClientConnection {
 		}
 	}
 	
+	// list all the files on the remote folders current directory
 	public String[] listFiles() throws IOException
 	{
 		String[] fileList = null;
@@ -91,13 +94,16 @@ public class ClientConnection {
 		return fileList;
 	}
 	
+	// send a delete command along with the file to delete
 	public boolean delete(String path) throws IOException
 	{
 		try 
 		{
+			// send the delete command along with the path
 			out.writeUTF("del");
 			out.writeUTF(path);
 			
+			// check if it was deleted or not
 			return Boolean.parseBoolean(in.readUTF());
 		} 
 		catch (IOException error) 
@@ -106,6 +112,7 @@ public class ClientConnection {
 		}
 	}
 	
+	// changes the path at the remote folder to match the folder we are opening
 	public boolean updatePath(String newPath) throws IOException
 	{
 		if (newPath.charAt(0) == '*' && newPath.charAt(newPath.length() - 1) == '*')
@@ -122,15 +129,16 @@ public class ClientConnection {
 			out.writeUTF("path");
 			out.writeUTF(newPath);
 			
+			// returns true if successful
 			return Boolean.parseBoolean(in.readUTF());
 		} 
 		catch (IOException error) 
 		{
-			// TODO Auto-generated catch block
 			throw error;
 		}
 	}
 	
+	// sends a message to the server to take us up one level of the folder
 	public void goBack() throws IOException
 	{
 		try 
@@ -143,6 +151,7 @@ public class ClientConnection {
 		}
 	}
 	
+	// closes the sockets and indicates to the server that we are done
 	public void close() throws IOException
 	{
 		// close resources after done
@@ -159,6 +168,7 @@ public class ClientConnection {
 		}
 	}
 	
+	// creates a folder with the given name in the remote folder
 	public void create(String name) throws IOException
 	{
 		try 
@@ -172,22 +182,53 @@ public class ClientConnection {
 		}
 	}
 	
+	// sends a download request for the filename in current directory. Will download to the location of the client
 	public void download(String filename) throws IOException
 	{
 		try 
 		{
+			// send the request
 			out.writeUTF("down");
 			out.writeUTF(filename);
 			
-			byte[] bytes = new byte[10000]; 
+			// set up the resources for transfer
+			byte[] bytes = new byte[1024]; 
 			BufferedOutputStream outstream = new BufferedOutputStream(new FileOutputStream(filename));
 			int bytesread = 0;
+			
+
+			// set up the timing for our data collection
+			long start = System.nanoTime();
+			long current = start;
+			long currentData = 0;
+			FileWriter reporting = new FileWriter("last_session_report.txt");
+			reporting.write("Download Starting \n");
+			System.out.println("Download Starting");
+			
 			do
 			{
 				bytesread = instream.read(bytes);
 				outstream.write(bytes, 0, bytesread);
+				
+				// added here
+				current = System.nanoTime();
+				currentData += bytesread;
+				if ((current - start) > 1000000000)
+				{
+					double megs = (float) currentData / 1000000.0;
+					double secs = (float) (current - start) / 1000000000.0;
+					System.out.println("Mbps = " + (megs/secs));
+					reporting.write("Mbps = " + (megs/secs) + "\n");
+					currentData = 0;
+					start = current;
+				}
 			}
 			while (bytesread == bytes.length);
+			
+			// close out all resources
+			System.out.println("Download complete");
+			reporting.write("Download complete \n");
+			reporting.close();
 			outstream.flush();
 			outstream.close();
 		} 
@@ -197,30 +238,58 @@ public class ClientConnection {
 		}
 	}
 	
+	// sends an upload request using the filename (which includes path information)
 	public void upload(String filename) throws IOException
 	{
 		try 
 		{
+			// send the request
 			out.writeUTF("up");
 			out.writeUTF(filename);
 			
+			// set up the resources
 			File resource = new File(filename);
-			//out.writeUTF(String.valueOf(resource.length()));
-			byte[] bytes = new byte[10];
+			byte[] bytes = new byte[1024];
 			int bytesread = 0;
+			
+			// prepare the data collection
+			long start = System.nanoTime();
+			long current = start;
+			long currentData = 0;
+			FileWriter reporting = new FileWriter("last_session_report.txt");
+			reporting.write("Upload Starting \n");
+			System.out.println("Upwnload Starting");
+			
 			BufferedInputStream instream = new BufferedInputStream(new FileInputStream(resource));
 			do
 			{
 				bytesread = instream.read(bytes);
 				out.write(bytes, 0, bytesread);
+				
+				// added here
+				current = System.nanoTime();
+				currentData += bytesread;
+				if ((current - start) > 1000000000)
+				{
+					double megs = (float) currentData / 1000000.0;
+					double secs = (float) (current - start) / 1000000000.0;
+					System.out.println("Mbps = " + (megs/secs));
+					reporting.write("Mbps = " + (megs/secs) + "\n");
+					currentData = 0;
+					start = current;
+				}
 			}
 			while(bytesread == bytes.length);
+			
+			// close out resources
+			System.out.println("Upload complete");
+			reporting.write("Upload complete \n");
+			reporting.close();
 			out.flush();
 			instream.close();
 		} 
 		catch (IOException error) 
 		{
-			error.printStackTrace();
 			throw error;
 		}
 	}

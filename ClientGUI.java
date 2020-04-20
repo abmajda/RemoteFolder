@@ -39,6 +39,7 @@ public class ClientGUI {
 		JLabel port = new JLabel("Please Enter Port Number: ");
 		JTextField portInput = new JTextField(7);
 		JLabel errorDisplay = new JLabel(" ");
+		// adds everything to the panel
 		panel.add(username);
 		panel.add(usernameInput);
 		panel.add(password);
@@ -49,7 +50,7 @@ public class ClientGUI {
 		panel.add(portInput);
 		panel.add(errorDisplay);
 		
-		// set up the button
+		// set up the login button which will attempt to authenticate using provided info
 		JButton login = new JButton("Log In");
 		login.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -59,7 +60,7 @@ public class ClientGUI {
 				String address = ipInput.getText();
 				int port = Integer.parseInt(portInput.getText());
 				
-				// still need to handle bad user/password
+				// try to establish a connection and authenticate
 				try
 				{
 					network = new ClientConnection(address, port, username, password);
@@ -67,6 +68,7 @@ public class ClientGUI {
 					frame.dispose();
 					createMainFrame();
 				}
+				// display an error message based on what went wrong
 				catch (Exception error)
 				{
 					if(error.getMessage().equals("user/pw"))
@@ -113,6 +115,7 @@ public class ClientGUI {
 			// error handling
 		}
 		
+		// set up the display that will list the files
 		JList<String> fileDisplay = new JList<String>(fileList);
 		fileDisplay.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		fileDisplay.setLayoutOrientation(JList.HORIZONTAL_WRAP);
@@ -122,9 +125,8 @@ public class ClientGUI {
 		
 		// the bottom panel
 		JPanel bottom = new JPanel();
-		JLabel errorDisplay = new JLabel(" ");
-		errorDisplay.setSize(100, 50);
 		JButton downloadButton = new JButton("Download");
+		// attempts to download the selected file if download is pressed
 		downloadButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -133,11 +135,12 @@ public class ClientGUI {
 				} 
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not download");
+					JOptionPane.showMessageDialog(frame, "Error in downloading");
 				}
 			}
 		});
 		
+		// closes the socket and exits the program when exit is pressed
 		JButton exitButton = new JButton("Exit");
 		exitButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -148,12 +151,12 @@ public class ClientGUI {
 				} 
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not close");
+					JOptionPane.showMessageDialog(frame, "Error in closing network");
+					System.exit(1);
 				}
 			}
 		});
 		
-		bottom.add(errorDisplay);
 		bottom.add(downloadButton);
 		bottom.add(exitButton);
 		
@@ -165,6 +168,9 @@ public class ClientGUI {
 		
 		JButton newFileButton = new JButton("New");
 		newFileButton.setMaximumSize(new Dimension(80, 25));
+		/* if the new button is pressed, load the GUI to ask for the file name then create it
+		 * and refresh the list afterwards
+		 */
 		newFileButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -181,23 +187,23 @@ public class ClientGUI {
 				}  
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not access network");
+					JOptionPane.showMessageDialog(frame, "Error in accessing network");
 				}
 			}
 		});
 		
 		JButton openFileButton = new JButton("Open");
 		openFileButton.setMaximumSize(new Dimension(80, 25));
+		// if the open button is pressed, send the new path to the network for root and refresh
 		openFileButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
 				{
-					// delete the file and refresh the file listings
+					// send the selected path to the network
 					boolean success = network.updatePath(fileDisplay.getSelectedValue());
 					if (!success)
 					{
-						errorDisplay.setText("Error, could not open folder");
-						JOptionPane.showMessageDialog(null, "Could not open folder", "Error", JOptionPane.INFORMATION_MESSAGE);
+						JOptionPane.showMessageDialog(frame, "Error opening folder");
 					}
 					String[] networkFileList = network.listFiles();
 					fileList.removeAllElements();
@@ -210,12 +216,14 @@ public class ClientGUI {
 				}  
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not access network");
+					JOptionPane.showMessageDialog(frame, "Error could not access network");
 				}
 			}
 		});
+		
 		JButton backButton = new JButton("Back");
 		backButton.setMaximumSize(new Dimension(80, 25));
+		// if the back button is pressed sent to network to remove the last added path and refresh
 		backButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -232,13 +240,14 @@ public class ClientGUI {
 				} 
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not retreive file list");
+					JOptionPane.showMessageDialog(frame, "Error, could not retreive file list");
 				}
 			}
 		});
 		
 		JButton deleteButton = new JButton("Delete");
 		deleteButton.setMaximumSize(new Dimension(80, 25));
+		// If delete is pressed send a delete request to the network and refresh
 		deleteButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -247,7 +256,7 @@ public class ClientGUI {
 					boolean success = network.delete(fileDisplay.getSelectedValue());
 					if (!success)
 					{
-						errorDisplay.setText("Error, could not delete");
+						JOptionPane.showMessageDialog(frame, "Error in deleting");
 					}
 					String[] networkFileList = network.listFiles();
 					fileList.removeAllElements();
@@ -260,13 +269,14 @@ public class ClientGUI {
 				}  
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not access network");
+					JOptionPane.showMessageDialog(frame, "Error in accessing network");
 				}
 			}
 		});
 		
 		JButton refreshButton = new JButton("Refresh");
 		refreshButton.setMaximumSize(new Dimension(80, 25));
+		// if refresh is clicked, clear the display and request the name of files in the directory to display
 		refreshButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -282,7 +292,7 @@ public class ClientGUI {
 				} 
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not retreive file list");
+					JOptionPane.showMessageDialog(frame, "Error, could not retreive file lists");
 				}
 			}
 		});
@@ -303,6 +313,7 @@ public class ClientGUI {
 		JLabel bottomLabel = new JLabel("Please enter filename");
 		JTextField fileEntry = new JTextField(15);
 		JButton uploadButton = new JButton("Upload");
+		// begin uploading a file to the server, then refresh
 		uploadButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -319,7 +330,7 @@ public class ClientGUI {
 				} 
 				catch (IOException error) 
 				{
-					errorDisplay.setText("Error, could not upload");
+					JOptionPane.showMessageDialog(frame, "Error in uploading");
 				}
 			}
 		});
@@ -336,6 +347,7 @@ public class ClientGUI {
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 		
+		// if the user closes the window without using the exit button, close the socket before exiting
 		frame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e)
 			{
@@ -367,7 +379,7 @@ public class ClientGUI {
 		panel.add(label);
 		panel.add(input);
 		
-		// create the button
+		// a button that takes the name the user implements and creates a new directory on the server
 		JButton submit = new JButton("submit");
 		submit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -382,8 +394,8 @@ public class ClientGUI {
 					{
 						fileList.addElement(networkFileList[i]);
 					}
+					// dispose of this frame when we are done
 					frame.dispose();
-					
 				} 
 				catch (IOException e1) 
 				{
@@ -392,6 +404,7 @@ public class ClientGUI {
 			}
 		});
 		
+		// add everything to the frame and make it visible
 		frame.add(BorderLayout.CENTER, panel);
 		frame.add(BorderLayout.SOUTH, submit);
 		frame.setLocationRelativeTo(null);
